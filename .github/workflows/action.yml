@@ -1,14 +1,17 @@
 # ワークフロー名
 name: test
+
 # トリガー
 on:
-  # push: 直ちに発火可能
   schedule:
     - cron: '*/1 * * * *'
+
 jobs:
-  steps:
-  - uses: actions/checkout@v4
-  - uses: actions/setup-python@v5
-    with:
-      python-version: '3.10' 
-  - run: python my_script.py
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - run: python my_script.py
