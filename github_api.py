@@ -63,7 +63,7 @@ def fetch_ready_items():
 
     response = requests.post(url, headers=headers, json={"query": query})
     data = response.json()
-
+    
     ready_items = []  
 
     for item in data["data"]["node"]["items"]["nodes"]:
@@ -71,6 +71,8 @@ def fetch_ready_items():
         status = ""
         end_date = ""
         assignees = []
+
+        # カードのフィールド一覧で表示したいフィールド（title, status, end_date, assignees）だけを抽出
         for field in item["fieldValues"]["nodes"]:
             if field["field"]["name"] == "Title":
                 title = field["text"]
@@ -80,11 +82,9 @@ def fetch_ready_items():
                 end_date = field["date"]
             if field["field"]["name"] == "Assignees":
                 assignees = [user["name"] for user in field["users"]["nodes"]]
+        #カードのステータスが、Readyのものだけ結果の配列に追加 
         if status == "Ready":
-            ready_items.append({
-                "title": title,
-                "end_date": end_date,
-                "assignees": assignees
-            })
+            message = f"title:{title},end_date:{end_date},assignees:{','.join(assignees)}"
+            ready_items.append(message)
 
     return ready_items
