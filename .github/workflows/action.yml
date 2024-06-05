@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '0 1 * * *' # 日本時間の午前10時に合わせる
 
 jobs:
   build:
@@ -20,5 +20,5 @@ jobs:
           pip install requests
       - run: python main.py
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-          TOKEN: ${{ secrets.SLACK_API_TOKEN }}
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          SLACK_API_TOKEN: ${{ secrets.SLACK_API_TOKEN }}
