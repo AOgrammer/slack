@@ -1,6 +1,7 @@
 import os
 import requests
 from datetime import datetime
+from requests.exceptions import RequestException, ConnectionError, HTTPError, Timeout
 
 def fetch_ready_items():
     url = "https://api.github.com/graphql"
@@ -61,44 +62,65 @@ def fetch_ready_items():
       }
     }
     """
-
-    response = requests.post(url, headers=headers, json={"query": query})
-    data = response.json()
+    try:
+        response = requests.post(url, headers=headers, json={"query": query})
+        response.raise_for_status()
+    except ConnectionError as ce:
+        print("Connection Error:", ce)
+        return []
+    except HTTPError as he:
+        print("HTTP Error:", he)
+        return []
+    except Timeout as te:
+        print("Timeout Error:", te)
+        return []
+    except RequestException as re:
+        print("Error:", re)
+        return []
+    try:
+        data = response.json()
+    except ValueError as ve:
+        print("JSON decode error:", ve)
+        return []
     
     ready_items = []
     today = datetime.today().date()
 
-    for item in data["data"]["node"]["items"]["nodes"]:
-        title = ""
-        status = ""
-        end_date = ""
-        assignees = []
+    try:
+        for item in data["data"]["node"]["items"]["nodes"]:
+            title = ""
+            status = ""
+            end_date = ""
+            assignees = []
 
-        # カードのフィールド一覧で表示したいフィールド（title, status, end_date, assignees）だけを抽出
-        for field in item["fieldValues"]["nodes"]:
-            if field["field"]["name"] == "Title":
-                title = field["text"]
-            if field["field"]["name"] == "Status":
-                status = field["name"]
-            if field["field"]["name"] == "End date":
-                end_date = field["date"]
-            if field["field"]["name"] == "Assignees":
-                assignees = [user["name"] for user in field["users"]["nodes"]]
+            # カードのフィールド一覧で表示したいフィールド（title, status, end_date, assignees）だけを抽出
+            for field in item["fieldValues"]["nodes"]:
+                if field["field"]["name"] == "Title":
+                    title = field["text"]
+                if field["field"]["name"] == "Status":
+                    status = field["name"]
+                if field["field"]["name"] == "End date":
+                    end_date = field["date"]
+                if field["field"]["name"] == "Assignees":
+                    assignees = [user["name"] for user in field["users"]["nodes"]]
 
-        # カードのステータスが、Readyのものだけ結果の配列に追加 
-        if status == "Ready":
-            message = f"title: {title}, end_date: {end_date}, assignees: {', '.join(assignees)}"
-            if end_date:
-                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
-                delta_days = (end_date_obj - today).days
+            # カードのステータスが、Readyのものだけ結果の配列に追加 
+            if status == "Ready":
+                message = f"title: {title}, end_date: {end_date}, assignees: {', '.join(assignees)}"
+                if end_date:
+                    end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                    delta_days = (end_date_obj - today).days
 
-                if delta_days > 0 and delta_days <= 2:
-                    message += f" 期日が近いです。残り{delta_days}日です。"
-                elif delta_days == 0:
-                    message += " 期日が今日です！今すぐにやってください。"
-                elif delta_days < 0:
-                    message += f" 期日が{abs(delta_days)}日過ぎています！"
-            
-            ready_items.append(message)
-
+                    if delta_days > 0 and delta_days <= 2:
+                        message += f" 期日が近いです。残り{delta_days}日です。"
+                    elif delta_days == 0:
+                        message += " 期日が今日です！今すぐにやってください。"
+                    elif delta_days < 0:
+                        message += f" 期日が{abs(delta_days)}日過ぎています！"
+                
+                ready_items.append(message)
+    except KeyError as ke:
+        print("Key error:", ke)
+    except Exception as e:
+        print("An error occurred:", e)
     return ready_items
